@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview Coach AI - Full Stack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="bg-shape bg-shape-a"></div>
+  <div class="bg-shape bg-shape-b"></div>
+
+  <header class="app-header">
+    <div class="hero-pill-row">
+      <span class="hero-pill">AI Feedback</span>
+      <span class="hero-pill">Interview Simulation</span>
+      <span class="hero-pill">Progress Analytics</span>
+    </div>
+    <h1>Interview Coach AI</h1>
+    <p>Practice and improve your interview skills with intelligent, real-time coaching</p>
+  </header>
+
+  <main class="container">
+    <section id="authSection" class="card">
+      <div class="auth-switch">
+        <button id="showLoginBtn" class="switch-btn active" type="button">Login</button>
+        <button id="showSignupBtn" class="switch-btn" type="button">Sign Up</button>
+      </div>
+
+      <div id="loginPanel" class="auth-panel">
+        <div class="auth-panel-inner">
+          <h2>Welcome Back!</h2>
+          <p class="auth-subtext">Welcome back. Continue your interview prep journey.</p>
+          <input id="loginUsername" placeholder="Username" />
+          <div class="password-input-wrapper">
+            <input id="loginPassword" type="password" placeholder="Password" />
+            <button type="button" class="password-toggle" data-toggle-password="loginPassword" aria-label="Toggle password visibility"></button>
+          </div>
+          <button id="loginBtn">Login</button>
+          <p class="auth-hint">Need an account? <button id="toSignupLink" type="button" class="inline-link">Sign Up</button></p>
+        </div>
+      </div>
+
+      <div id="signupPanel" class="auth-panel hidden">
+        <div class="auth-panel-inner">
+          <h2>Sign Up</h2>
+          <p class="auth-subtext">Create your account and start practicing smarter.</p>
+          <input id="signupUsername" placeholder="Username (min 8 chars)" />
+          <div class="password-input-wrapper">
+            <input id="signupPassword" type="password" placeholder="Password" />
+            <button type="button" class="password-toggle" data-toggle-password="signupPassword" aria-label="Toggle password visibility"></button>
+          </div>
+          <div class="password-input-wrapper">
+            <input id="signupConfirmPassword" type="password" placeholder="Confirm Password" />
+            <button type="button" class="password-toggle" data-toggle-password="signupConfirmPassword" aria-label="Toggle password visibility"></button>
+          </div>
+          <button id="signupBtn">Sign Up</button>
+          <p class="auth-hint">Already have an account? <button id="toLoginLink" type="button" class="inline-link">Login</button></p>
+        </div>
+      </div>
+      <p id="authMessage" class="message"></p>
+    </section>
+
+    <section id="appSection" class="hidden">
+      <nav class="tabs">
+        <button class="tab active" data-tab="about">About</button>
+        <button class="tab" data-tab="practice">Practice Interview</button>
+        <button class="tab" data-tab="mock">Mock Interview Video</button>
+        <button class="tab" data-tab="progress">Progress Tracker</button>
+        <button class="tab" data-tab="reports">Reports</button>
+        <button class="tab" data-tab="account">Account</button>
+      </nav>
+
+      <section id="about" class="tab-panel active card">
+        <p class="about-kicker">Interview Prep, Reimagined</p>
+        <h2 class="about-title">Level up your interview game with real-time AI coaching</h2>
+        <p class="about-lead">This platform helps you practice smarter with instant feedback, posture guidance, performance trends, and mock interview simulations tailored to your role.</p>
+
+        <div class="about-strip">
+          <span class="about-chip">Text + Audio + Video Modes</span>
+          <span class="about-chip">Role-based Mock Interviews</span>
+          <span class="about-chip">Progress Analytics + PDF Reports</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span id="totalSessions">0</span><small>Total Sessions</small></div>
+          <div class="stat"><span id="avgConfidence">0.0</span><small>Avg Confidence</small></div>
+          <div class="stat"><span id="userStatus">New</span><small>User Status</small></div>
+        </div>
+
+        <div class="about-grid">
+          <article class="about-card about-card-a">
+            <h3>Practice That Feels Real</h3>
+            <p>Choose a question, answer naturally, and get immediate analysis on confidence, tone, and vocabulary.</p>
+          </article>
+          <article class="about-card about-card-b">
+            <h3>Body Language Check</h3>
+            <p>Use video mode to track posture and presence so your delivery matches your content quality.</p>
+          </article>
+          <article class="about-card about-card-c">
+            <h3>Track Actual Growth</h3>
+            <p>See trends over time, identify weak spots, and export your progress report in one click.</p>
+          </article>
+        </div>
+
+        <div class="about-steps">
+          <div class="step-item">
+            <span class="step-dot">1</span>
+            <p>Pick a mode and answer a question.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-dot">2</span>
+            <p>Review AI feedback and posture insights.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-dot">3</span>
+            <p>Repeat, improve, and export your report.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="practice" class="tab-panel card">
+        <h2>Practice Interview</h2>
+        <p class="section-subtitle">Choose a practice mode and receive structured performance feedback.</p>
+        <label for="practiceMode">Choose Method</label>
+        <select id="practiceMode" title="Choose interview practice method">
+          <option>Record Audio Response</option>
+          <option>Text Input Response</option>
+          <option>Video Practice</option>
+        </select>
+
+        <label for="questionSelect">Interview Question</label>
+        <select id="questionSelect" title="Choose interview question"></select>
+        <input id="customQuestion" class="hidden" placeholder="Enter custom question" />
+
+        <div class="rl-controls">
+          <label class="rl-toggle-row" for="useRlMode">
+            <input id="useRlMode" type="checkbox" />
+            <span>Enable RL Adaptive Coaching</span>
+          </label>
+          <label for="rlDifficulty">RL Difficulty</label>
+          <select id="rlDifficulty" title="Choose RL difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <p id="rlStatus" class="section-subtitle">RL mode is off.</p>
+        </div>
+
+        <div id="rlSummary" class="rl-summary hidden">
+          <h3>RL Session Visibility</h3>
+          <div class="rl-summary-grid">
+            <div><small>Attempt</small><strong id="rlAttempt">-</strong></div>
+            <div><small>Total Reward</small><strong id="rlReward">-</strong></div>
+            <div><small>Average Grade</small><strong id="rlAvgGrade">-</strong></div>
+            <div><small>Latest Strategy</small><strong id="rlStrategy">-</strong></div>
+          </div>
+          <p id="rlSessionState" class="section-subtitle">No active RL session.</p>
+        </div>
+
+        <div id="textPractice" class="mode-pane hidden">
+          <textarea id="textAnswer" rows="8" placeholder="Type your interview response..."></textarea>
+          <button id="analyzeTextBtn" class="cta-main">Analyze Response</button>
+        </div>
+
+        <div id="audioPractice" class="mode-pane">
+          <p>Use browser speech recognition, then analyze your transcript.</p>
+          <div class="speech-controls">
+            <button id="startSpeechBtn">Start Speech</button>
+            <button id="stopSpeechBtn" class="ghost">Stop Speech</button>
+          </div>
+          <p id="audioSpeechTimer" class="speech-timer">Recording Time: 00:00</p>
+          <textarea id="audioTranscript" rows="6" placeholder="Transcription appears here..."></textarea>
+          <button id="analyzeAudioBtn" class="cta-main">Analyze Audio Response</button>
+        </div>
+
+        <div id="videoPractice" class="mode-pane hidden">
+          <p>Start camera to receive posture feedback while answering.</p>
+          <div class="video-stage">
+            <video id="videoPreview" autoplay muted></video>
+            <div id="postureOverlay" class="posture-overlay posture-overlay-neutral">
+              <span id="postureOverlayStatus">Posture: Not analyzed</span>
+              <span id="postureOverlayFeedback">No posture analysis yet</span>
+            </div>
+          </div>
+          <div class="camera-controls">
+            <button id="startCameraBtn">Start Camera</button>
+            <button id="stopCameraBtn" class="ghost">Stop Camera</button>
+          </div>
+          <p id="postureStatus">Posture: Not analyzed</p>
+          <p id="postureFeedback">Feedback: No posture analysis yet</p>
+          <textarea id="videoTranscript" rows="6" placeholder="Use speech recognition then submit..."></textarea>
+          <div class="speech-controls">
+            <button id="startVideoSpeechBtn">Start Speech</button>
+            <button id="stopVideoSpeechBtn" class="ghost">Stop Speech</button>
+          </div>
+          <p id="videoSpeechTimer" class="speech-timer">Recording Time: 00:00</p>
+          <button id="submitVideoBtn" class="cta-main">Submit Video Practice</button>
+        </div>
+
+        <pre id="analysisResult" class="result"></pre>
+      </section>
+
+      <section id="mock" class="tab-panel card">
+        <h2>Mock Interview Video</h2>
+        <p class="section-subtitle">Generate a simulated interview video based on your role and experience level.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="mockRole">Job Position</label>
+            <input id="mockRole" value="Data Analyst" placeholder="Job Role" />
+          </div>
+          <div class="field">
+            <label for="mockExperience">Experience Level</label>
+            <select id="mockExperience" title="Choose experience level">
+              <option>Entry-level</option>
+              <option>Mid-level</option>
+              <option>Senior</option>
+              <option>Executive</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="mockType">Interview Scenario</label>
+            <select id="mockType" title="Choose interview type">
+              <option>Standard</option>
+              <option>Behavioral</option>
+              <option>Technical</option>
+              <option>Case Study</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label for="mockDetails">Additional Details</label>
+            <textarea id="mockDetails" rows="4" title="Additional interview details">Proficient in SQL, Python, and Tableau. The company is a growing startup in e-commerce.</textarea>
+          </div>
+        </div>
+        <button id="generateMockBtn" class="cta-main">Generate Mock Interview Video</button>
+        <p id="mockMessage" class="message"></p>
+        <a id="downloadMockLink" class="hidden" target="_blank">Download Generated Video</a>
+        <video id="mockVideoPlayer" class="hidden" controls></video>
+        <details>
+          <summary>Transcript</summary>
+          <pre id="mockTranscript"></pre>
+        </details>
+      </section>
+
+      <section id="progress" class="tab-panel card">
+        <h2>Progress Tracker</h2>
+        <p class="section-subtitle">Track confidence and tone trends across your recent sessions.</p>
+        <div class="progress-summary">
+          <div class="progress-stat">
+            <small>Total Sessions</small>
+            <strong id="progressSessions">0</strong>
+          </div>
+          <div class="progress-stat">
+            <small>Avg Confidence</small>
+            <strong id="progressAvgConfidence">0.0</strong>
+          </div>
+          <div class="progress-stat">
+            <small>Avg Tone</small>
+            <strong id="progressAvgTone">0.00</strong>
+          </div>
+          <div class="progress-stat">
+            <small>Best Confidence</small>
+            <strong id="progressBestConfidence">0.0</strong>
+          </div>
+        </div>
+        <p id="progressInsight" class="section-subtitle"></p>
+        <div class="chart-wrap">
+          <canvas id="confidenceChart"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="toneChart"></canvas>
+        </div>
+      </section>
+
+      <section id="reports" class="tab-panel card">
+        <h2>Reports</h2>
+        <p class="section-subtitle">Filter sessions and export your performance report as PDF.</p>
+        <div class="date-row">
+          <div class="field">
+            <label for="startDate">Start Date</label>
+            <input id="startDate" type="date" title="Report start date" />
+          </div>
+          <div class="field">
+            <label for="endDate">End Date</label>
+            <input id="endDate" type="date" title="Report end date" />
+          </div>
+        </div>
+        <button id="downloadPdfBtn" class="cta-main">Download PDF Report</button>
+        <div id="reportsList"></div>
+      </section>
+
+      <section id="account" class="tab-panel card">
+        <h2>Account</h2>
+        <p class="section-subtitle">Manage your profile and view account activity summary.</p>
+        <p id="accountUsername">Username:</p>
+        <p id="accountSessions">Total Sessions: 0</p>
+        <button id="logoutBtn" class="hidden cta-main">Log Out</button>
+      </section>
+    </section>
+  </main>
+
+  <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p id="loadingText">Processing...</p>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
