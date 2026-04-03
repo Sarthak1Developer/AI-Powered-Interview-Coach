@@ -69,6 +69,14 @@ ensure_nltk_resources()
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "interview-coach-dev-secret")
 
+# Hugging Face Spaces runs the app inside an iframe. Use cross-site secure
+# cookies there so session auth survives the login redirect/fetch cycle.
+if os.getenv("SPACE_ID"):
+    app.config.update(
+        SESSION_COOKIE_SAMESITE="None",
+        SESSION_COOKIE_SECURE=True,
+    )
+
 USER_DB_FILE = "users.json"
 REPORTS_DIR = "reports"
 
