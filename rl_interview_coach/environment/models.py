@@ -108,8 +108,8 @@ class Reward(BaseModel):
     
     # Total reward (for learning)
     total: float = Field(
-        ge=-16, le=12,
-        description="Total reward = improvement + efficiency + penalty"
+        ge=0, le=1,
+        description="Normalized total reward in range [0.0, 1.0]"
     )
     
     # Metadata

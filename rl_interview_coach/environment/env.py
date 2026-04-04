@@ -250,6 +250,12 @@ Think about:
             'attempt': self.attempt_number,
             'grade': new_grade,
             'improvement': improvement,
+            'raw_total_reward': (
+                reward.improvement_reward
+                + reward.efficiency_reward
+                + reward.max_attempts_penalty
+                + (5.0 - (self.attempt_number * 0.5) if new_grade >= self.target_grade else 0.0)
+            ),
             'feedback_strategy': action.strategy.value,
             'episode_id': self.episode_id,
             'grader_type': grader_type,
@@ -410,14 +416,15 @@ Try again and see if you can improve!
         if current_grade >= self.target_grade:
             reached_bonus = 5.0 - (attempt_num * 0.5)  # More attempts = less bonus
         
-        # Total reward
-        total = improvement_reward + efficiency_reward + max_attempts_penalty + reached_bonus
+        # Raw reward keeps rich shaping signal, then normalize to [0, 1].
+        raw_total = improvement_reward + efficiency_reward + max_attempts_penalty + reached_bonus
+        normalized_total = max(0.0, min(1.0, (raw_total + 16.0) / 28.0))
         
         return Reward(
             improvement_reward=improvement_reward,
             efficiency_reward=efficiency_reward,
             max_attempts_penalty=max_attempts_penalty,
-            total=total,
+            total=normalized_total,
             done=False,
             success=current_grade >= self.target_grade,
             reason=""

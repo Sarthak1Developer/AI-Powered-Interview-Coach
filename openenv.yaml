@@ -134,8 +134,8 @@ reward:
     
     total:
       type: float
-      description: "Total reward signal for Q-learning"
-      range: [-15.0, 12.0]
+      description: "Normalized total reward signal"
+      range: [0.0, 1.0]
     
     done:
       type: boolean
