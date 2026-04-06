@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-powered-interview-coach"
+version = "1.0.0"
+description = "OpenEnv-compliant reinforcement learning environment and Flask app for interview coaching"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "AI Interview Coach" }
+]
+dependencies = [
+  "Flask",
+  "Werkzeug",
+  "SpeechRecognition",
+  "nltk",
+  "numpy",
+  "opencv-python",
+  "pandas",
+  "matplotlib",
+  "requests",
+  "Pillow",
+  "moviepy==1.0.3",
+  "gTTS",
+  "pydub",
+  "python-dotenv",
+  "openai",
+  "reportlab",
+  "pyttsx3",
+  "pydantic>=2.0.0",
+  "PyYAML>=6.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/ShauriyaDeveloper1/AI-Powered-Interview-Coach"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["rl_interview_coach*"]
+exclude = ["static*", "templates*", "reports*", "models*", "scripts*"]
