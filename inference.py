@@ -97,15 +97,23 @@ def _create_proxy_client():
     )
 
 
-def _get_answer(
-    client,
-    remote_mode: bool,
-    prompt: str,
-    question: str,
-    attempt: int,
-    previous_feedback: List[str],
-) -> str:
-    if not (remote_mode and client is not None):
+def _preflight_proxy_call(client) -> None:
+    """Make one mandatory proxy call so validator can observe LiteLLM key usage."""
+    completion = client.chat.completions.create(
+        model=MODEL_NAME,
+        temperature=0.0,
+        messages=[
+            {"role": "system", "content": "Reply with exactly: ok"},
+            {"role": "user", "content": "ok"},
+        ],
+        max_tokens=4,
+    )
+    if not (completion.choices and completion.choices[0].message.content):
+        raise RuntimeError("Proxy preflight returned empty content.")
+
+
+def _get_answer(client, prompt: str) -> str:
+    if client is None:
         raise RuntimeError("Proxy client is not available.")
 
     completion = client.chat.completions.create(
@@ -152,9 +160,9 @@ def _build_prompt(question: str, attempt: int, previous_feedback: List[str]) -> 
 
 def run_inference() -> Dict:
     _normalize_api_key_env()
+    _require_proxy_env()
 
-    client = None
-    remote_mode = _has_remote_config()
+    remote_mode = True
     key_source = "none"
     if os.getenv("API_KEY"):
         key_source = "API_KEY"
@@ -167,12 +175,8 @@ def run_inference() -> Dict:
         flush=True,
     )
 
-    proxy_error: Exception | None = None
-    if remote_mode:
-        try:
-            client = _create_proxy_client()
-        except Exception as exc:
-            proxy_error = exc
+    client = _create_proxy_client()
+    _preflight_proxy_call(client)
 
     env = InterviewCoachEnv(seed=42, max_attempts=MAX_ATTEMPTS, target_grade=0.80)
 
@@ -191,22 +195,12 @@ def run_inference() -> Dict:
         step_rewards: List[float] = []
 
         try:
-            if proxy_error is not None:
-                raise proxy_error
-
             for attempt in range(1, MAX_ATTEMPTS + 1):
                 attempts_used = attempt
                 strategy = _choose_strategy(attempt)
                 prompt = _build_prompt(task.question, attempt, feedback_history)
 
-                answer = _get_answer(
-                    client,
-                    remote_mode,
-                    prompt,
-                    task.question,
-                    attempt,
-                    feedback_history,
-                )
+                answer = _get_answer(client, prompt)
 
                 action = Action(strategy=strategy, confidence=0.95, response_text=answer)
                 step_result = env.step(action)
