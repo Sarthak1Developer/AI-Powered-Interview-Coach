@@ -16,7 +16,7 @@ from typing import Optional, Dict, Tuple
 from datetime import datetime
 
 from .models import (
-    Observation, Action, Reward, StepReturn, FeedbackStrategy, DifficultyLevel
+    Observation, Action, Reward, StepReturn, FeedbackStrategy, DifficultyLevel, clamp_score
 )
 from .tasks import TaskBank, Task, TaskType
 from ..graders.answer_grader import get_grader
@@ -418,7 +418,7 @@ Try again and see if you can improve!
         
         # Raw reward keeps rich shaping signal, then normalize to [0, 1].
         raw_total = improvement_reward + efficiency_reward + max_attempts_penalty + reached_bonus
-        normalized_total = max(0.0, min(1.0, (raw_total + 16.0) / 28.0))
+        normalized_total = clamp_score((raw_total + 16.0) / 28.0)
         
         return Reward(
             improvement_reward=improvement_reward,

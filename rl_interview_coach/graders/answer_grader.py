@@ -12,7 +12,12 @@ from nltk.tokenize import word_tokenize
 from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.corpus import stopwords
 import nltk
+# Epsilon for strict (0, 1) range
+_EPSILON = 0.0005
 
+def _clamp_score(score: float) -> float:
+    """Clamp score to strictly within (0, 1) range."""
+    return max(_EPSILON, min(1.0 - _EPSILON, score))
 # Ensure NLTK resources
 try:
     nltk.data.find('tokenizers/punkt')
@@ -60,20 +65,20 @@ class AnswerGrader:
         """
         Score based on answer length.
         - Too short (< min_words): score = 0.3
-        - Optimal (min_words to max_words): score = 1.0
+        - Optimal (min_words to max_words): score = 0.95 (not 1.0)
         - Too long (> max_words): score gradually decreases
         """
         words = answer.split()
         word_count = len(words)
         
         if word_count < min_words:
-            return 0.3
+            return _clamp_score(0.3)
         elif word_count <= max_words:
-            return 1.0
+            return _clamp_score(0.95)
         else:
             # Penalize for being too verbose
             excess = word_count - max_words
-            return max(0.6, 1.0 - (excess / max_words) * 0.3)
+            return _clamp_score(max(0.6, 1.0 - (excess / max_words) * 0.3))
 
 
 class GeneralAnswerGrader(AnswerGrader):
@@ -137,8 +142,9 @@ class GeneralAnswerGrader(AnswerGrader):
         details['structure_score'] = structure_score
         scores.append(('structure', structure_score, 0.15))
         
-        # Weighted average
+        # Weighted average, clamped to strict (0, 1)
         final_score = sum(s * w for _, s, w in scores)
+        final_score = _clamp_score(final_score)
         details['final_score'] = final_score
         
         return final_score, details
@@ -147,12 +153,12 @@ class GeneralAnswerGrader(AnswerGrader):
     def _keyword_score(answer: str, keywords: List[str]) -> Tuple[float, int]:
         """Score based on keyword presence."""
         if not keywords:
-            return 1.0, 0
+            return _clamp_score(1.0), 0
         
         answer_lower = answer.lower()
         found = sum(1 for kw in keywords if kw.lower() in answer_lower)
         score = found / len(keywords)
-        return score, found
+        return _clamp_score(score), found
     
     @staticmethod
     def _coherence_score(answer: str) -> float:
@@ -161,11 +167,11 @@ class GeneralAnswerGrader(AnswerGrader):
         sentences = [s.strip() for s in sentences if s.strip()]
         
         if len(sentences) < 2:
-            return 0.4
+            return _clamp_score(0.4)
         elif len(sentences) >= 4:
-            return 1.0
+            return _clamp_score(0.95)
         else:
-            return 0.6 + (len(sentences) - 2) * 0.2
+            return _clamp_score(0.6 + (len(sentences) - 2) * 0.2)
     
     @staticmethod
     def _structure_score(answer: str) -> float:
@@ -178,7 +184,7 @@ class GeneralAnswerGrader(AnswerGrader):
         ]
         
         found = sum(1 for pattern in indicators if re.search(pattern, answer.lower()))
-        return min(1.0, found / len(indicators) + 0.3)
+        return _clamp_score(min(0.95, found / len(indicators) + 0.3))
 
 
 class BehavioralAnswerGrader(AnswerGrader):
@@ -228,8 +234,8 @@ class BehavioralAnswerGrader(AnswerGrader):
         # Sentiment/professionalism: 15%
         
         star_avg = sum(star_scores.values()) / len(star_scores)
-        metric_score = 1.0 if has_metrics else 0.5
-        sentiment = (self.get_sentiment_score(answer) + 1) / 2
+        metric_score = 0.95 if has_metrics else _clamp_score(0.5)
+        sentiment = _clamp_score((self.get_sentiment_score(answer) + 1) / 2)
         
         final_score = (
             star_avg * 0.5 +
@@ -237,7 +243,7 @@ class BehavioralAnswerGrader(AnswerGrader):
             length_score * 0.15 +
             sentiment * 0.15
         )
-        
+        final_score = _clamp_score(final_score)
         details['final_score'] = final_score
         return final_score, details
     
@@ -248,7 +254,7 @@ class BehavioralAnswerGrader(AnswerGrader):
         scores = {}
         for component, keywords in self.star_keywords.items():
             found = sum(1 for kw in keywords if kw in answer_lower)
-            scores[f'star_{component}_score'] = min(1.0, found / max(len(keywords), 1))
+            scores[f'star_{component}_score'] = _clamp_score(min(0.95, found / max(len(keywords), 1)))
         
         return scores
     
@@ -301,7 +307,7 @@ class TechnicalAnswerGrader(AnswerGrader):
             length_score * 0.2 +
             code_score * 0.2
         )
-        
+        final_score = _clamp_score(final_score)
         details['final_score'] = final_score
         return final_score, details
     
@@ -310,7 +316,7 @@ class TechnicalAnswerGrader(AnswerGrader):
         answer_lower = answer.lower()
         found = sum(1 for indicator in self.quality_indicators 
                    if indicator in answer_lower)
-        return min(1.0, found / len(self.quality_indicators))
+        return _clamp_score(min(0.95, found / len(self.quality_indicators)))
     
     @staticmethod
     def _check_clarity(answer: str) -> float:
@@ -319,18 +325,18 @@ class TechnicalAnswerGrader(AnswerGrader):
         sentences = [s.strip() for s in sentences if s.strip()]
         
         if not sentences:
-            return 0.0
+            return _clamp_score(0.1)
         
         avg_length = sum(len(s.split()) for s in sentences) / len(sentences)
         
         # Ideal: 10-20 words per sentence
         if avg_length < 5:
-            return 0.4
+            return _clamp_score(0.4)
         elif avg_length <= 20:
-            return 1.0
+            return _clamp_score(0.95)
         else:
             # Too long sentences
-            return max(0.5, 1.0 - (avg_length - 20) / 30)
+            return _clamp_score(max(0.5, 1.0 - (avg_length - 20) / 30))
     
     @staticmethod
     def _has_code_sample(answer: str) -> float:
@@ -342,7 +348,7 @@ class TechnicalAnswerGrader(AnswerGrader):
             r'if\s*\(|while\s*\(|for\s*\(',
         ]
         found = sum(1 for pattern in code_indicators if re.search(pattern, answer))
-        return min(1.0, found / len(code_indicators))
+        return _clamp_score(min(0.95, found / len(code_indicators) * 0.8 + 0.2))
 
 
 def get_grader(question: str, difficulty: str) -> Tuple[AnswerGrader, str]:

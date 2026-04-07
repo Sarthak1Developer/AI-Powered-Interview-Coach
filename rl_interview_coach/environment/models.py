@@ -6,6 +6,13 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
 
+# Epsilon to ensure scores are strictly within (0, 1), not on endpoints
+_EPSILON = 0.0005
+
+def clamp_score(score: float) -> float:
+    """Clamp score to strictly within (0, 1) range."""
+    return max(_EPSILON, min(1.0 - _EPSILON, score))
+
 
 # ============================================================================
 # OBSERVATIONS (STATE)
