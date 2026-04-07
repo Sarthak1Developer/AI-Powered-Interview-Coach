@@ -31,8 +31,8 @@ except ImportError:
 from rl_interview_coach import Action, FeedbackStrategy, InterviewCoachEnv, TaskBank, TaskType
 
 API_BASE_URL = os.getenv("API_BASE_URL")
-MODEL_NAME = os.getenv("MODEL_NAME")
-HF_TOKEN = os.getenv("HF_TOKEN")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+MODEL_NAME = os.getenv("MODEL_NAME") or "gpt-4o-mini"
 BENCHMARK = os.getenv("BENCHMARK") or "interview-coach"
 
 MAX_ATTEMPTS = 3
@@ -75,7 +75,7 @@ def _log_end(success: bool, steps: int, score: float, rewards: List[float]) -> N
 
 
 def _has_remote_config() -> bool:
-    return bool(OpenAI and API_BASE_URL and MODEL_NAME and HF_TOKEN)
+    return bool(OpenAI and API_BASE_URL and MODEL_NAME and API_KEY)
 
 
 def _build_offline_answer(question: str, attempt: int, previous_feedback: List[str]) -> str:
@@ -140,7 +140,7 @@ def run_inference() -> Dict:
     remote_mode = _has_remote_config()
     if remote_mode:
         try:
-            client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+            client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
         except Exception:
             client = None
             remote_mode = False
@@ -227,6 +227,7 @@ def run_inference() -> Dict:
     report = {
         "api_base_url": API_BASE_URL,
         "model_name": MODEL_NAME,
+        "proxy_key_present": bool(API_KEY),
         "remote_mode": remote_mode,
         "seed": 42,
         "max_attempts": MAX_ATTEMPTS,
