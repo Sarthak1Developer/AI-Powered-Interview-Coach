@@ -87,6 +87,26 @@ def _build_offline_answer(question: str, attempt: int, previous_feedback: List[s
     )
 
 
+def _get_answer(client, remote_mode: bool, prompt: str, question: str, attempt: int, previous_feedback: List[str]) -> str:
+    if remote_mode and client is not None:
+        try:
+            completion = client.chat.completions.create(
+                model=MODEL_NAME,
+                temperature=0.0,
+                messages=[
+                    {"role": "system", "content": "You produce interview answers only."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=220,
+            )
+            if completion.choices and completion.choices[0].message.content:
+                return completion.choices[0].message.content.strip()
+        except Exception:
+            pass
+
+    return _build_offline_answer(question, attempt, previous_feedback)
+
+
 def _choose_strategy(attempt: int) -> FeedbackStrategy:
     if attempt == 1:
         return FeedbackStrategy.HINT
@@ -147,21 +167,7 @@ def run_inference() -> Dict:
                 strategy = _choose_strategy(attempt)
                 prompt = _build_prompt(task.question, attempt, feedback_history)
 
-                if remote_mode and client is not None:
-                    completion = client.chat.completions.create(
-                        model=MODEL_NAME,
-                        temperature=0.0,
-                        messages=[
-                            {"role": "system", "content": "You produce interview answers only."},
-                            {"role": "user", "content": prompt},
-                        ],
-                        max_tokens=220,
-                    )
-                    answer = ""
-                    if completion.choices and completion.choices[0].message.content:
-                        answer = completion.choices[0].message.content.strip()
-                else:
-                    answer = _build_offline_answer(task.question, attempt, feedback_history)
+                answer = _get_answer(client, remote_mode, prompt, task.question, attempt, feedback_history)
 
                 action = Action(strategy=strategy, confidence=0.95, response_text=answer)
                 step_result = env.step(action)
