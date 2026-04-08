@@ -19,7 +19,6 @@ try:
 except ImportError:
     OpenAI = None
 
-MODEL_NAME = os.getenv("MODEL_NAME") or "gpt-4o-mini"
 BENCHMARK = os.getenv("BENCHMARK") or "interview-coach"
 
 MAX_ATTEMPTS = 3
@@ -40,8 +39,12 @@ def _sanitize_field(value: str) -> str:
 
 
 def _log_start(task_name: str) -> None:
+    try:
+        model_name = _get_model_name()
+    except Exception:
+        model_name = "unknown"
     print(
-        f"[START] task={_sanitize_field(task_name)} env={_sanitize_field(BENCHMARK)} model={_sanitize_field(MODEL_NAME or 'unknown')}",
+        f"[START] task={_sanitize_field(task_name)} env={_sanitize_field(BENCHMARK)} model={_sanitize_field(model_name)}",
         flush=True,
     )
 
@@ -69,20 +72,41 @@ def _log_bootstrap_failure(error: str) -> None:
 
 
 def _has_remote_config() -> bool:
-    return bool(OpenAI and MODEL_NAME and os.getenv("API_BASE_URL") and os.getenv("API_KEY"))
+    return bool(OpenAI and os.getenv("MODEL_NAME") and os.getenv("API_BASE_URL") and os.getenv("API_KEY"))
+
+
+def _get_model_name() -> str:
+    model_name = os.getenv("MODEL_NAME", "").strip()
+    if not model_name:
+        raise RuntimeError("Missing required env var: MODEL_NAME")
+    return model_name
 
 
 def _normalize_api_key_env() -> None:
-    """Support validator setups that provide HF_TOKEN instead of API_KEY."""
-    if "API_KEY" not in os.environ and "HF_TOKEN" in os.environ:
+    """Map HF_TOKEN to API_KEY when runner provides HF-style secret names."""
+    if not os.environ.get("API_KEY") and os.environ.get("HF_TOKEN"):
         os.environ["API_KEY"] = os.environ["HF_TOKEN"]
+
+
+def _log_proxy_config() -> None:
+    """Emit proxy config diagnostics without exposing full credentials."""
+    api_key = os.environ.get("API_KEY")
+    key_hint = "set" if api_key else "missing"
+    model_name = os.environ.get("MODEL_NAME")
+    print(f"[CONFIG] API_BASE_URL={os.environ.get('API_BASE_URL')}", flush=True)
+    print(f"[CONFIG] API_KEY={key_hint}", flush=True)
+    print(f"[CONFIG] MODEL_NAME={model_name}", flush=True)
 
 
 def _require_proxy_env() -> None:
     """Require proxy variables in submission mode."""
     # Use exact validator variable names; no aliases/fallback providers.
-    os.environ["API_BASE_URL"]
-    os.environ["API_KEY"]
+    if not os.environ.get("API_BASE_URL", "").strip():
+        raise RuntimeError("Missing required env var: API_BASE_URL")
+    if not os.environ.get("API_KEY", "").strip():
+        raise RuntimeError("Missing required env var: API_KEY")
+    if not os.environ.get("MODEL_NAME", "").strip():
+        raise RuntimeError("Missing required env var: MODEL_NAME")
 
 
 def _create_proxy_client():
@@ -95,10 +119,10 @@ def _create_proxy_client():
     )
 
 
-def _preflight_proxy_call(client) -> None:
+def _preflight_proxy_call(client, model_name: str) -> None:
     """Make one mandatory proxy call so validator can observe LiteLLM key usage."""
     completion = client.chat.completions.create(
-        model=MODEL_NAME,
+        model=model_name,
         temperature=0.0,
         messages=[
             {"role": "system", "content": "Reply with exactly: ok"},
@@ -110,12 +134,12 @@ def _preflight_proxy_call(client) -> None:
         raise RuntimeError("Proxy preflight returned empty content.")
 
 
-def _get_answer(client, prompt: str) -> str:
+def _get_answer(client, prompt: str, model_name: str) -> str:
     if client is None:
         raise RuntimeError("Proxy client is not available.")
 
     completion = client.chat.completions.create(
-        model=MODEL_NAME,
+        model=model_name,
         temperature=0.0,
         messages=[
             {"role": "system", "content": "You produce interview answers only."},
@@ -158,13 +182,15 @@ def _build_prompt(question: str, attempt: int, previous_feedback: List[str]) -> 
 
 def run_inference() -> Dict:
     _normalize_api_key_env()
+    _log_proxy_config()
     _require_proxy_env()
+    model_name = _get_model_name()
 
     remote_mode = True
     api_key = os.getenv("API_KEY")
 
     client = _create_proxy_client()
-    _preflight_proxy_call(client)
+    _preflight_proxy_call(client, model_name)
 
     try:
         from rl_interview_coach import Action, InterviewCoachEnv, TaskBank, TaskType
@@ -193,7 +219,7 @@ def run_inference() -> Dict:
                 strategy = _choose_strategy(attempt)
                 prompt = _build_prompt(task.question, attempt, feedback_history)
 
-                answer = _get_answer(client, prompt)
+                answer = _get_answer(client, prompt, model_name)
 
                 action = Action(strategy=strategy, confidence=0.95, response_text=answer)
                 step_result = env.step(action)
@@ -252,7 +278,7 @@ def run_inference() -> Dict:
 
     report = {
         "api_base_url": os.getenv("API_BASE_URL"),
-        "model_name": MODEL_NAME,
+        "model_name": model_name,
         "proxy_key_present": bool(api_key),
         "remote_mode": remote_mode,
         "seed": 42,
@@ -272,6 +298,7 @@ def main() -> None:
         run_inference()
     except Exception as exc:
         _log_bootstrap_failure(_sanitize_field(str(exc)))
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

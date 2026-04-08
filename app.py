@@ -51,6 +51,8 @@ from PIL import Image, ImageDraw
 
 # Ensure necessary NLTK resources are available.
 def ensure_nltk_resources():
+    # Avoid blocking startup on hosted environments unless explicitly enabled.
+    auto_download = os.getenv("NLTK_AUTO_DOWNLOAD", "0").strip() == "1"
     resources = [
         ("tokenizers/punkt", "punkt"),
         ("tokenizers/punkt_tab", "punkt_tab"),
@@ -61,7 +63,11 @@ def ensure_nltk_resources():
         try:
             nltk.data.find(path)
         except LookupError:
-            nltk.download(name, quiet=True)
+            if auto_download:
+                try:
+                    nltk.download(name, quiet=True)
+                except Exception:
+                    pass
 
 
 ensure_nltk_resources()
@@ -80,18 +86,19 @@ if os.getenv("SPACE_ID"):
 USER_DB_FILE = "users.json"
 REPORTS_DIR = "reports"
 
-openai_api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+openai_base_url = os.getenv("API_BASE_URL") or os.getenv("OPENAI_BASE_URL") or ""
 freepik_api_key = os.getenv("FREEPIK_API_KEY")
 
 client = None
-if _OPENAI_NEW and openai_api_key:
+if _OPENAI_NEW and api_key:
     try:
-        client = OpenAI(api_key=openai_api_key, base_url="https://api.aimlapi.com/v1")
+        client = OpenAI(api_key=api_key, base_url=openai_base_url)
     except Exception:
         client = None
-elif openai_api_key:
-    openai.api_key = openai_api_key
-    openai.api_base = "https://api.aimlapi.com/v1"
+elif api_key:
+    openai.api_key = api_key
+    openai.api_base = openai_base_url
 
 
 QUESTION_BANK = [
@@ -304,8 +311,14 @@ class VideoTransformer:
 class InterviewCoach:
     def __init__(self):
         self.recognizer = sr.Recognizer() if sr else None
-        self.sentiment_analyzer = SentimentIntensityAnalyzer()
-        self.stopwords = set(stopwords.words("english"))
+        try:
+            self.sentiment_analyzer = SentimentIntensityAnalyzer()
+        except Exception:
+            self.sentiment_analyzer = None
+        try:
+            self.stopwords = set(stopwords.words("english"))
+        except Exception:
+            self.stopwords = set()
 
         self.professional_words = {
             "accomplished",
@@ -365,6 +378,13 @@ class InterviewCoach:
                 "score": 0,
                 "sentiment": "neutral",
                 "feedback": "No speech detected to analyze tone.",
+            }
+
+        if self.sentiment_analyzer is None:
+            return {
+                "score": 0,
+                "sentiment": "neutral",
+                "feedback": "Tone analyzer is unavailable in this runtime. Continuing with neutral scoring.",
             }
 
         sentiment_scores = self.sentiment_analyzer.polarity_scores(text)
@@ -625,7 +645,7 @@ def generate_interview_transcript(role, experience, additional_details, intervie
         {"role": "user", "content": prompt},
     ]
 
-    if not openai_api_key:
+    if not api_key:
         return _fallback_transcript(role, experience, additional_details, interview_type)
 
     try:
@@ -794,7 +814,7 @@ def api_meta():
     return jsonify(
         {
             "questions": QUESTION_BANK,
-            "has_openai_key": bool(openai_api_key),
+            "has_api_key": bool(api_key),
             "has_freepik_key": bool(freepik_api_key),
         }
     )

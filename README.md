@@ -179,7 +179,7 @@ Create a `.env` file in the project root:
 
 ```env
 # For web app and baseline/inference scripts
-OPENAI_API_KEY=your_openai_or_aiml_api_key
+API_KEY=your_openai_or_aiml_api_key
 FREEPIK_API_KEY=your_freepik_api_key
 
 # For AIML API (if using non-default endpoint)
@@ -187,9 +187,10 @@ API_BASE_URL=https://api.aimlapi.com/v1
 # or
 OPENAI_BASE_URL=https://api.aimlapi.com/v1
 
-# For inference.py only
+# For inference.py submission flow
 MODEL_NAME=your_model_name
-HF_TOKEN=your_huggingface_token
+API_BASE_URL=https://your-proxy-base-url/v1
+API_KEY=your-proxy-api-key
 
 # Optional: Production security
 FLASK_SECRET_KEY=your_secret_key_here
@@ -198,7 +199,7 @@ FLASK_SECRET_KEY=your_secret_key_here
 **Notes:**
 - `.env` is auto-loaded by app.py and baseline.py (via python-dotenv).
 - Add `.env` to `.gitignore` before committing.
-- If `OPENAI_API_KEY` is unset, the app falls back to local transcript generation.
+- If `API_KEY` is unset, the app falls back to local transcript generation.
 - If `FREEPIK_API_KEY` is unset, placeholder images are used instead.
 
 ## Usage Instructions
@@ -220,14 +221,14 @@ python app.py
 
 Open `http://127.0.0.1:5000` in your browser.
 
-### Run baseline evaluation (requires `OPENAI_API_KEY` and `API_BASE_URL` if using AIML)
+### Run baseline evaluation (requires `API_KEY` and `API_BASE_URL` if using AIML)
 ```powershell
 python baseline.py
 ```
 
 Output: `reports/baseline_openai_report.json` — deterministic score report on one task per difficulty tier.
 
-### Run inference benchmark (requires `API_BASE_URL`, `MODEL_NAME`, `HF_TOKEN`)
+### Run inference benchmark (requires `API_BASE_URL`, `API_KEY`, `MODEL_NAME`)
 ```powershell
 python inference.py
 ```
@@ -265,7 +266,7 @@ Output: `reports/inference_scores.json` — model-specific benchmark metrics.
 | Browser speech recognition not working | Use a Chromium-based browser and ensure microphone permission is granted. |
 | Video generation fails | Install FFmpeg and ensure it is available on PATH. |
 | API errors (403/quota) | Verify key validity, quota, and billing on your provider account. |
-| `OPENAI_API_KEY` not found (baseline/inference) | Create/update `.env` file in project root with your key. The app auto-loads it. |
+| `API_KEY` not found (baseline/inference) | Create/update `.env` file in project root with your key. The app auto-loads it. |
 
 ## Contributing
 

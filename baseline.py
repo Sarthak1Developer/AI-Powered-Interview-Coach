@@ -8,7 +8,7 @@ What this script does:
 4. Produces reproducible scores and writes JSON report.
 
 Requirements:
-- OPENAI_API_KEY environment variable
+- API_KEY environment variable
 - pip install openai
 
 Run:
@@ -59,9 +59,9 @@ class TaskResult:
 
 
 def _require_api_key() -> str:
-    key = os.getenv("OPENAI_API_KEY")
+    key = os.getenv("API_KEY")
     if not key:
-        raise ValueError("OPENAI_API_KEY is not set")
+        raise ValueError("API_KEY is not set")
     return key
 
 
