@@ -3,7 +3,7 @@ Submission inference entrypoint.
 
 Validator requirements covered:
 - Uses OpenAI client for all LLM calls.
-- Reads API_BASE_URL, API_KEY, MODEL_NAME from environment.
+- Reads API_BASE_URL, MODEL_NAME, and API key from injected environment variables.
 - Runs on 3 tasks (easy, medium, hard) and emits reproducible score report.
 """
 
@@ -72,7 +72,7 @@ def _log_bootstrap_failure(error: str) -> None:
 
 
 def _has_remote_config() -> bool:
-    return bool(OpenAI and os.getenv("MODEL_NAME") and os.getenv("API_BASE_URL") and os.getenv("API_KEY"))
+    return bool(OpenAI and os.getenv("MODEL_NAME") and os.getenv("API_BASE_URL") and _get_api_key())
 
 
 def _get_model_name() -> str:
@@ -83,13 +83,18 @@ def _get_model_name() -> str:
 
 
 def _normalize_api_key_env() -> None:
-    """Keep API_KEY as the only supported submission secret."""
-    return
+    """Map HF_TOKEN into API_KEY when the runner uses HF-style key injection."""
+    if not os.environ.get("API_KEY") and os.environ.get("HF_TOKEN"):
+        os.environ["API_KEY"] = os.environ["HF_TOKEN"]
+
+
+def _get_api_key() -> str:
+    return (os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "").strip()
 
 
 def _log_proxy_config() -> None:
     """Emit proxy config diagnostics without exposing full credentials."""
-    api_key = os.environ.get("API_KEY")
+    api_key = _get_api_key()
     key_hint = "set" if api_key else "missing"
     model_name = os.environ.get("MODEL_NAME")
     print(f"[CONFIG] API_BASE_URL={os.environ.get('API_BASE_URL')}", flush=True)
@@ -99,11 +104,11 @@ def _log_proxy_config() -> None:
 
 def _require_proxy_env() -> None:
     """Require proxy variables in submission mode."""
-    # Use exact validator variable names; no aliases/fallback providers.
+    # Use only validator-injected proxy config.
     if not os.environ.get("API_BASE_URL", "").strip():
         raise RuntimeError("Missing required env var: API_BASE_URL")
-    if not os.environ.get("API_KEY", "").strip():
-        raise RuntimeError("Missing required env var: API_KEY")
+    if not _get_api_key():
+        raise RuntimeError("Missing required env var: API_KEY or HF_TOKEN")
     if not os.environ.get("MODEL_NAME", "").strip():
         raise RuntimeError("Missing required env var: MODEL_NAME")
 
@@ -115,30 +120,8 @@ def _create_proxy_client():
 
     return OpenAI(
         base_url=os.environ["API_BASE_URL"].strip(),
-        api_key=os.environ["API_KEY"].strip(),
+        api_key=_get_api_key(),
     )
-
-
-def _is_insufficient_credits_error(exc: Exception) -> bool:
-    message = str(exc).lower()
-    return "insufficient_credits" in message or "run out of credits" in message
-
-
-def _try_hf_router_fallback(model_name: str):
-    """Retry preflight on HF router when primary provider quota is exhausted."""
-    hf_token = os.getenv("HF_TOKEN", "").strip()
-    if not hf_token:
-        return None, model_name
-
-    hf_base_url = os.getenv("HF_API_BASE_URL", "https://router.huggingface.co/v1").strip()
-    hf_model_name = os.getenv("HF_MODEL_NAME", "").strip() or model_name
-
-    print(f"[FALLBACK] API_BASE_URL={hf_base_url}", flush=True)
-    print(f"[FALLBACK] MODEL_NAME={hf_model_name}", flush=True)
-
-    client = OpenAI(base_url=hf_base_url, api_key=hf_token)
-    _preflight_proxy_call(client, hf_model_name)
-    return client, hf_model_name
 
 
 def _preflight_proxy_call(client, model_name: str) -> None:
@@ -209,21 +192,10 @@ def run_inference() -> Dict:
     model_name = _get_model_name()
 
     remote_mode = True
-    api_key = os.getenv("API_KEY")
+    api_key = _get_api_key()
 
     client = _create_proxy_client()
-    try:
-        _preflight_proxy_call(client, model_name)
-    except Exception as exc:
-        if not _is_insufficient_credits_error(exc):
-            raise
-        fallback_client, fallback_model_name = _try_hf_router_fallback(model_name)
-        if fallback_client is None:
-            raise
-        client = fallback_client
-        model_name = fallback_model_name
-        remote_mode = True
-        api_key = os.getenv("HF_TOKEN") or api_key
+    _preflight_proxy_call(client, model_name)
 
     try:
         from rl_interview_coach import Action, InterviewCoachEnv, TaskBank, TaskType
