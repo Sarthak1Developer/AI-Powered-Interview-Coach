@@ -15,7 +15,6 @@ authors = [
 dependencies = [
   "Flask",
   "Werkzeug",
-  "openenv-core>=0.2.0",
   "SpeechRecognition",
   "nltk",
   "numpy",
