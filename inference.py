@@ -161,17 +161,7 @@ def run_inference() -> Dict:
     _require_proxy_env()
 
     remote_mode = True
-    key_source = "none"
-    if os.getenv("API_KEY"):
-        key_source = "API_KEY"
-
-    api_base_url = os.getenv("API_BASE_URL")
     api_key = os.getenv("API_KEY")
-
-    print(
-        f"[CONFIG] proxy_base_url_present={_bool_str(bool(api_base_url))} proxy_key_source={key_source} remote_mode={_bool_str(remote_mode)}",
-        flush=True,
-    )
 
     client = _create_proxy_client()
     _preflight_proxy_call(client)
@@ -261,7 +251,7 @@ def run_inference() -> Dict:
     success_rate = sum(1 for item in task_scores if item["success"]) / len(task_scores)
 
     report = {
-        "api_base_url": api_base_url,
+        "api_base_url": os.getenv("API_BASE_URL"),
         "model_name": MODEL_NAME,
         "proxy_key_present": bool(api_key),
         "remote_mode": remote_mode,
