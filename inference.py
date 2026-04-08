@@ -119,6 +119,28 @@ def _create_proxy_client():
     )
 
 
+def _is_insufficient_credits_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "insufficient_credits" in message or "run out of credits" in message
+
+
+def _try_hf_router_fallback(model_name: str):
+    """Retry preflight on HF router when primary provider quota is exhausted."""
+    hf_token = os.getenv("HF_TOKEN", "").strip()
+    if not hf_token:
+        return None, model_name
+
+    hf_base_url = os.getenv("HF_API_BASE_URL", "https://router.huggingface.co/v1").strip()
+    hf_model_name = os.getenv("HF_MODEL_NAME", "").strip() or model_name
+
+    print(f"[FALLBACK] API_BASE_URL={hf_base_url}", flush=True)
+    print(f"[FALLBACK] MODEL_NAME={hf_model_name}", flush=True)
+
+    client = OpenAI(base_url=hf_base_url, api_key=hf_token)
+    _preflight_proxy_call(client, hf_model_name)
+    return client, hf_model_name
+
+
 def _preflight_proxy_call(client, model_name: str) -> None:
     """Make one mandatory proxy call so validator can observe LiteLLM key usage."""
     completion = client.chat.completions.create(
@@ -190,7 +212,18 @@ def run_inference() -> Dict:
     api_key = os.getenv("API_KEY")
 
     client = _create_proxy_client()
-    _preflight_proxy_call(client, model_name)
+    try:
+        _preflight_proxy_call(client, model_name)
+    except Exception as exc:
+        if not _is_insufficient_credits_error(exc):
+            raise
+        fallback_client, fallback_model_name = _try_hf_router_fallback(model_name)
+        if fallback_client is None:
+            raise
+        client = fallback_client
+        model_name = fallback_model_name
+        remote_mode = True
+        api_key = os.getenv("HF_TOKEN") or api_key
 
     try:
         from rl_interview_coach import Action, InterviewCoachEnv, TaskBank, TaskType
