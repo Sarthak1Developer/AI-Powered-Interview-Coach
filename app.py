@@ -154,13 +154,7 @@ REPORTS_DIR = "reports"
 _email_otp_store = {}
 _OTP_TTL_SECONDS = 10 * 60
 
-# Preserve injected API_KEY precedence and support judge-style key names.
-api_key = (
-    os.getenv("API_KEY")
-    or os.getenv("JUDGE_API_KEY")
-    or os.getenv("OPENAI_API_KEY")
-    or os.getenv("HF_TOKEN")
-)
+api_key = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 openai_base_url = os.getenv("API_BASE_URL") or os.getenv("OPENAI_BASE_URL") or ""
 freepik_api_key = os.getenv("FREEPIK_API_KEY")
 

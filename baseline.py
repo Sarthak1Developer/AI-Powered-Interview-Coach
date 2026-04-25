@@ -59,14 +59,9 @@ class TaskResult:
 
 
 def _require_api_key() -> str:
-    key = (
-        os.getenv("API_KEY")
-        or os.getenv("JUDGE_API_KEY")
-        or os.getenv("OPENAI_API_KEY")
-        or os.getenv("HF_TOKEN")
-    )
+    key = os.getenv("API_KEY")
     if not key:
-        raise ValueError("API_KEY is not set (accepted: API_KEY, JUDGE_API_KEY, OPENAI_API_KEY, HF_TOKEN)")
+        raise ValueError("API_KEY is not set")
     return key
 
 
