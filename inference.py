@@ -131,13 +131,23 @@ def _get_model_name() -> str:
 
 
 def _normalize_api_key_env() -> None:
-    """Map HF_TOKEN into API_KEY when the runner uses HF-style key injection."""
-    if not os.environ.get("API_KEY") and os.environ.get("HF_TOKEN"):
-        os.environ["API_KEY"] = os.environ["HF_TOKEN"]
+    """Map fallback key names into API_KEY without overriding an existing API_KEY."""
+    if os.environ.get("API_KEY"):
+        return
+    for candidate in ("JUDGE_API_KEY", "OPENAI_API_KEY", "HF_TOKEN"):
+        if os.environ.get(candidate):
+            os.environ["API_KEY"] = os.environ[candidate]
+            return
 
 
 def _get_api_key() -> str:
-    return (os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "").strip()
+    return (
+        os.getenv("API_KEY")
+        or os.getenv("JUDGE_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("HF_TOKEN")
+        or ""
+    ).strip()
 
 
 def _get_api_base_url() -> str:
@@ -157,7 +167,9 @@ def _require_proxy_env() -> None:
     if not _get_api_base_url():
         raise RuntimeError("Missing required env var: API_BASE_URL")
     if not _get_api_key():
-        raise RuntimeError("Missing required env var: API_KEY or HF_TOKEN")
+        raise RuntimeError(
+            "Missing required env var: API_KEY (or JUDGE_API_KEY/OPENAI_API_KEY/HF_TOKEN fallback)"
+        )
 
 
 def _create_proxy_client():

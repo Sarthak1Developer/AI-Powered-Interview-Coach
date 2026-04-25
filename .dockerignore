@@ -10,5 +10,4 @@ __pycache__
 .env.*
 !.env_example
 reports
-models
 *.log
