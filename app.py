@@ -1093,11 +1093,28 @@ def _upsert_user_profile(username: str, updates: dict) -> dict:
     return profile
 
 
+def _default_gamification() -> dict:
+    return {"xp": 0, "streak": 0, "badges": [], "level": 1, "last_grade": 0.0}
+
+
+def _ensure_gamification(username: str, profile: dict | None = None, persist: bool = False) -> dict:
+    if not isinstance(profile, dict):
+        profile = _get_user_profile(username)
+
+    gamification = profile.get("gamification")
+    if isinstance(gamification, dict):
+        return gamification
+
+    gamification = _default_gamification()
+    profile["gamification"] = gamification
+    if persist:
+        _upsert_user_profile(username, {"gamification": gamification})
+    return gamification
+
+
 def _calculate_gamification(username: str, grade: float, is_boss: bool = False) -> dict:
     profile = _get_user_profile(username)
-    gamification = profile.get("gamification")
-    if not isinstance(gamification, dict):
-        gamification = {"xp": 0, "streak": 0, "badges": [], "level": 1, "last_grade": 0.0}
+    gamification = _ensure_gamification(username, profile=profile, persist=False)
     
     base_xp = int(grade * 100)
     bonus_xp = 0
@@ -1518,7 +1535,9 @@ def api_me():
     username = session.get("username")
     if not username:
         return jsonify({"logged_in": False})
-    return jsonify({"logged_in": True, "username": username, "profile": _get_user_profile(username)})
+    profile = _get_user_profile(username)
+    _ensure_gamification(username, profile=profile, persist=True)
+    return jsonify({"logged_in": True, "username": username, "profile": profile})
 
 
 @app.post("/api/profile")
@@ -1666,6 +1685,7 @@ def api_signup():
         "major": major,
         "linkedin": linkedin,
         "about": about,
+        "gamification": _default_gamification(),
     }
 
     firebase_uid = _firebase_upsert_user(email=email, full_name=full_name)

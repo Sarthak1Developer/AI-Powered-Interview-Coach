@@ -917,9 +917,14 @@ async function loginFlow() {
   await loadReports();
   await loadProgress();
   showToast(`Welcome, ${state.username}`);
-  if (state.profile && state.profile.gamification) {
-    updateGamificationUi(state.profile.gamification);
-  }
+  const loginGamification = (state.profile && state.profile.gamification) || {
+    xp: 0,
+    total_xp: 0,
+    streak: 0,
+    badges: [],
+    level: 1,
+  };
+  updateGamificationUi(loginGamification);
 }
 
 function resetAccountProfileForm() {
