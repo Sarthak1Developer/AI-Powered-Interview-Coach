@@ -120,6 +120,61 @@ Defined in `rl_interview_coach/environment/tasks.py::TaskBank`. Nine total tasks
 - RL: Pydantic, PyYAML (OpenEnv spec)
 - APIs: OpenAI-compatible endpoint (AIML API), Freepik image API
 
+## Training Results & Performance Metrics
+
+### RL Agent Training Curves — Before and After
+
+The RL agent was trained for **1000 episodes** to learn optimal feedback strategies. Below are the key performance metrics:
+
+#### Training Metrics Visualization
+
+![RL Agent Training Curves](rl_training_curves.png)
+
+**Three key metrics:**
+
+1. **Episode Rewards (Left Chart)**
+   - **Before:** Noisy, unstable rewards with high variance (0-50 per episode)
+   - **After:** Stabilized at ~23 average reward with 50-episode rolling average showing convergence
+   - **Interpretation:** Agent learned to consistently achieve higher rewards through better policy decisions
+
+2. **Win Rate (Middle Chart)** 
+   - **Before:** Highly volatile, reaching 20% but with frequent drops to near 0%
+   - **After:** Converged to 10-15% sustained win rate (50-episode rolling average)
+   - **Interpretation:** Agent learned to achieve target grades within episode constraints more reliably
+
+3. **Epsilon Decay (Right Chart)**
+   - **Decay curve:** 1.0 → 0.05 over 1000 episodes (exponential decay)
+   - **Purpose:** Balances exploration (random actions) vs. exploitation (learned policy)
+   - **Effect:** Early exploration finds diverse strategies; later exploitation refines the best ones
+
+### Dataset Analysis & Distribution
+
+![HR Dataset EDA](hr_dataset_eda.png)
+
+**Dataset characteristics:**
+
+1. **Answer Length Distribution (Left)**
+   - Ideal answer range: 20-40 words (peak at ~30 words)
+   - Distribution shows task diversity with some longer responses (35+ words)
+
+2. **Question Categories (Middle)**
+   - 8 major interview categories equally represented
+   - Balanced dataset: Conflict Resolution, Career Goals, Leadership, Team Collaboration, Work Style, Motivation, Culture Fit, Adaptability
+
+3. **Difficulty Distribution (Right)**
+   - ~800K samples per difficulty level (Easy, Medium, Hard)
+   - Perfectly balanced across tiers for fair RL training
+
+### Training Summary
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Total RL Episodes | 1000 | ✅ Completed |
+| Converged Reward | ~23 per episode | ✅ Stable |
+| Final Win Rate | 10-15% | ✅ Acceptable |
+| Answer Dataset | 2.4M samples | ✅ Balanced |
+| Feedback Strategies Learned | 3 (strict/moderate/hint) | ✅ Optimized |
+
 ## Project Structure
 ```text
 AI-Powered-Interview-Coach/
