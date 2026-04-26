@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV PORT=7860
+ENV NLTK_DATA=/app/.nltk_data
 
 # Install system dependencies with retry
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,7 +27,7 @@ COPY . .
 
 # Hugging Face Spaces commonly runs containers with UID 1000.
 # Ensure runtime-generated files are writable in /app.
-RUN mkdir -p /app/reports \
+RUN mkdir -p /app/reports /app/.nltk_data \
     && chown -R 1000:1000 /app
 
 USER 1000

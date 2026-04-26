@@ -169,6 +169,14 @@ elif api_key:
     openai.api_key = api_key
     openai.api_base = openai_base_url
 
+# Ensure NLTK downloads use a writable directory on constrained runtimes.
+if not os.getenv("NLTK_DATA"):
+    os.environ["NLTK_DATA"] = str(Path(".nltk_data").resolve())
+try:
+    Path(os.environ["NLTK_DATA"]).mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
 
 QUESTION_BANK = [
     "Tell me about yourself.",
