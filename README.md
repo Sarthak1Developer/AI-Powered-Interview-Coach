@@ -235,7 +235,6 @@ Create a `.env` file in the project root:
 ```env
 # For web app and baseline/inference scripts
 API_KEY=your_openai_or_aiml_api_key
-FREEPIK_API_KEY=your_freepik_api_key
 
 # For AIML API (if using non-default endpoint)
 API_BASE_URL=https://api.aimlapi.com/v1
