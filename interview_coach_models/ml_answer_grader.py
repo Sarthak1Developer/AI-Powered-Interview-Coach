@@ -28,6 +28,14 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return float(default)
 
 
+def _env_first(*names: str, default: str = "") -> str:
+    for name in names:
+        value = (os.getenv(name) or "").strip()
+        if value:
+            return value
+    return default
+
+
 class MLAnswerGrader:
     """Local model-backed grader.
 
@@ -107,8 +115,8 @@ class MLAnswerGrader:
 
         self._t5_attempted = True
 
-        t5_dir = self.model_dir / "t5_interview_coach"
-        if not t5_dir.exists():
+        t5_dir = self._resolve_t5_dir()
+        if t5_dir is None:
             return
 
         try:
@@ -126,6 +134,61 @@ class MLAnswerGrader:
             self._t5_device = None
             self._t5_tokenizer = None
             self._t5_model = None
+
+    @staticmethod
+    def _has_t5_weights(t5_dir: Path) -> bool:
+        # At least one model weight file must exist for local loading.
+        return (t5_dir / "model.safetensors").exists() or (t5_dir / "pytorch_model.bin").exists()
+
+    def _resolve_t5_dir(self) -> Optional[Path]:
+        local_t5_dir = self.model_dir / "t5_interview_coach"
+        if local_t5_dir.exists() and self._has_t5_weights(local_t5_dir):
+            return local_t5_dir
+
+        auto_download = _env_first("INTERVIEW_COACH_AUTO_DOWNLOAD_T5", "AUTO_DOWNLOAD_T5", default="0") == "1"
+        repo_id = _env_first("INTERVIEW_COACH_T5_REPO_ID", "T5_REPO_ID")
+        if not auto_download or not repo_id:
+            return None
+
+        repo_type = _env_first("INTERVIEW_COACH_T5_REPO_TYPE", "T5_REPO_TYPE", default="model").lower()
+        if repo_type not in {"model", "dataset", "space"}:
+            repo_type = "model"
+
+        subfolder = _env_first(
+            "INTERVIEW_COACH_T5_SUBFOLDER",
+            "T5_SUBFOLDER",
+            default="t5_interview_coach",
+        ).strip("/")
+        cache_root = Path(
+            _env_first(
+                "INTERVIEW_COACH_HF_CACHE_DIR",
+                "HF_CACHE_DIR",
+                default=str(self.model_dir / "hf_cache"),
+            )
+        )
+
+        try:
+            from huggingface_hub import snapshot_download  # type: ignore
+
+            token = (os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN") or "").strip() or None
+            allow_patterns = [f"{subfolder}/*"] if subfolder else None
+            repo_snapshot = Path(
+                snapshot_download(
+                    repo_id=repo_id,
+                    repo_type=repo_type,
+                    token=token,
+                    local_dir=str(cache_root),
+                    local_dir_use_symlinks=False,
+                    allow_patterns=allow_patterns,
+                )
+            )
+
+            resolved = repo_snapshot / subfolder if subfolder else repo_snapshot
+            if resolved.exists() and self._has_t5_weights(resolved):
+                return resolved
+            return None
+        except Exception:
+            return None
 
     def _heuristic_grade(self, keyword_recall: float, structure_score: float, word_count: int) -> float:
         # Conservative heuristic when the classic classifier bundle is absent.
