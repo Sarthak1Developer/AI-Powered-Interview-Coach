@@ -856,7 +856,6 @@ async function doSignup() {
     const major = document.getElementById("signupMajor")?.value?.trim();
     const linkedin = document.getElementById("signupLinkedIn")?.value?.trim();
     const about = document.getElementById("signupAbout")?.value?.trim();
-    const otp = document.getElementById("signupOtp")?.value?.trim();
 
     const username = document.getElementById("signupUsername").value.trim();
     const password = document.getElementById("signupPassword").value;
@@ -877,32 +876,12 @@ async function doSignup() {
         major,
         linkedin,
         about,
-        otp,
       },
     });
     setLoading(false);
     setMessage("authMessage", "Account created. Please login.");
     switchAuthMode("login");
     showToast("Account created. Please login.", "success");
-  } catch (e) {
-    setLoading(false);
-    setMessage("authMessage", e.message);
-    showToast(e.message, "error");
-  }
-}
-
-async function sendEmailOtp() {
-  try {
-    const email = document.getElementById("signupEmail")?.value?.trim();
-    if (!email) {
-      showToast("Please enter your email first.", "error");
-      return;
-    }
-    setLoading(true, "Sending OTP...");
-    const result = await api("/api/auth/send-email-otp", { method: "POST", body: { email } });
-    setLoading(false);
-    setMessage("authMessage", result.message || "OTP sent. Check your inbox.");
-    showToast(result.message || "OTP sent", "success");
   } catch (e) {
     setLoading(false);
     setMessage("authMessage", e.message);
@@ -938,9 +917,14 @@ async function loginFlow() {
   await loadReports();
   await loadProgress();
   showToast(`Welcome, ${state.username}`);
-  if (state.profile && state.profile.gamification) {
-    updateGamificationUi(state.profile.gamification);
-  }
+  const loginGamification = (state.profile && state.profile.gamification) || {
+    xp: 0,
+    total_xp: 0,
+    streak: 0,
+    badges: [],
+    level: 1,
+  };
+  updateGamificationUi(loginGamification);
 }
 
 function resetAccountProfileForm() {
@@ -1533,13 +1517,6 @@ function setupEvents() {
   document.getElementById("showSignupBtn").addEventListener("click", () => switchAuthMode("signup"));
   document.getElementById("toSignupLink").addEventListener("click", () => switchAuthMode("signup"));
   document.getElementById("toLoginLink").addEventListener("click", () => switchAuthMode("login"));
-
-  const sendOtpBtn = document.getElementById("sendEmailOtpBtn");
-  if (sendOtpBtn) {
-    sendOtpBtn.addEventListener("click", () => {
-      sendEmailOtp().catch(() => undefined);
-    });
-  }
 
   const sendEmailLinkBtn = document.getElementById("sendEmailLinkBtn");
   if (sendEmailLinkBtn) {
