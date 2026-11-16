@@ -20,3 +20,11 @@ tmp_resume.txt
 *.pkl
 .DS_Store
 Thumbs.db
+
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/build/
+android/app/build/
+android/*/build/
