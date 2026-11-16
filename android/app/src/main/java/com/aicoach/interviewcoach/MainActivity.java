@@ -82,7 +82,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         SharedPreferences prefs = getSharedPreferences("app_settings", MODE_PRIVATE);
-        targetUrl = normalizeUrl(prefs.getString("server_url", getString(R.string.default_web_url)));
+        String saved = prefs.getString("server_url", null);
+        if (saved == null || saved.isEmpty() || saved.contains("huggingface.co/spaces")) {
+            targetUrl = getString(R.string.default_web_url);
+            prefs.edit().putString("server_url", targetUrl).apply();
+        } else {
+            targetUrl = normalizeUrl(saved);
+        }
 
         initViews();
         setupWebView();
